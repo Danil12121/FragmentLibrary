@@ -15,20 +15,21 @@ import kotlin.getValue
 import kotlin.properties.Delegates
 
 class FullInfoFragment : Fragment(R.layout.fragment_full_info) {
-    lateinit var binding: FragmentFullInfoBinding
-    lateinit var et_Title: EditText
-    lateinit var et_FirstVar: EditText
-    lateinit var et_SecondVar: EditText
-    lateinit var saveButton: Button
+    val ITEM_STR = "item"
+    private lateinit var binding: FragmentFullInfoBinding
+    private lateinit var et_Title: EditText
+    private lateinit var et_FirstVar: EditText
+    private lateinit var et_SecondVar: EditText
+    private lateinit var saveButton: Button
 
-    lateinit var textMessFromList: String
-    var itemId by Delegates.notNull<Int>()
-    lateinit var imageView: ImageView
+    private lateinit var textMessFromList: String
+    private var itemId by Delegates.notNull<Int>()
+    private lateinit var imageView: ImageView
     private val mainViewModel: MainViewModel by activityViewModels()
 
     fun updateItem(newItem: LibraryItem) {
         arguments = Bundle().apply {
-            putSerializable("item", newItem)
+            putSerializable(ITEM_STR, newItem)
         }
         updateUi("NEW")
     }
@@ -102,28 +103,30 @@ class FullInfoFragment : Fragment(R.layout.fragment_full_info) {
 
     fun updateUi(message: String) {
         when (message) {
-            "NEW" -> {
-                saveButton.text = "Сохранить"
-                val radioGroup = binding.radioGroup
-                val defaultCheckedId = radioGroup.checkedRadioButtonId
-                settingsBeforeEnterData(defaultCheckedId)
-                radioGroup.setOnCheckedChangeListener { group, checkedId ->
-                    settingsBeforeEnterData(checkedId)
-                }
-            }
-
-            "OLD" -> {
-                saveButton.text = "Назад"
-                binding.radioGroup.visibility = View.INVISIBLE
-                val item = mainViewModel.itemToFullInfo.value
-                displayInformation(item)
-                makeNotEnable(et_Title)
-                makeNotEnable(et_FirstVar)
-                makeNotEnable(et_FirstVar)
-            }
-
+            "NEW" -> actionOnNew()
+            "OLD" -> actionOnOld()
             else -> saveButton.text = "Ошибка передачи сообщения"
         }
+    }
+
+    fun actionOnNew() {
+        saveButton.text = "Сохранить"
+        val radioGroup = binding.radioGroup
+        val defaultCheckedId = radioGroup.checkedRadioButtonId
+        settingsBeforeEnterData(defaultCheckedId)
+        radioGroup.setOnCheckedChangeListener { group, checkedId ->
+            settingsBeforeEnterData(checkedId)
+        }
+    }
+
+    fun actionOnOld() {
+        saveButton.text = "Назад"
+        binding.radioGroup.visibility = View.INVISIBLE
+        val item = mainViewModel.itemToFullInfo.value
+        displayInformation(item)
+        makeNotEnable(et_Title)
+        makeNotEnable(et_FirstVar)
+        makeNotEnable(et_FirstVar)
     }
 
     fun makeNotEnable(et: EditText) {
@@ -182,7 +185,7 @@ class FullInfoFragment : Fragment(R.layout.fragment_full_info) {
     companion object {
         fun newInstance(item: LibraryItem) = FullInfoFragment().apply {
             arguments = Bundle().apply {
-                putSerializable("item", item)
+                putSerializable(ITEM_STR, item)
             }
         }
     }
