@@ -1,9 +1,13 @@
 package com.example.libraryui
 
-class Disk(
-    id: Int, val title: String, val diskType: String
 
-) : LibraryItem(imageID = R.drawable.disk, id = id, isEnable = true, name = "Disk") {
+class Disk(
+    override val id: Int,
+    title: String,
+    val diskType: String,
+    createdAt: Long
+
+) : LibraryItem(imageID = R.drawable.disk, id = id, isEnable = true, name = "Disk", createdAt = System.currentTimeMillis(), title=title) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         other as Disk

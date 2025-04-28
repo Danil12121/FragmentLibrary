@@ -71,8 +71,22 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center"
-        android:layout_marginBottom="16dp"
+        android:layout_marginBottom="10dp"
         android:text="Добавить Элемент" />
+    <Button
+        android:id="@+id/button_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center"
+        android:layout_marginBottom="90dp"
+        android:text="Сортировать по названию" />
+    <Button
+        android:id="@+id/button_date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center"
+        android:layout_marginBottom="50dp"
+        android:text="Сортировать по дате" />
 
     <ProgressBar
         android:id="@+id/myProgressBar"
@@ -86,6 +100,6 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginTop="15dp"
-        android:layout_marginBottom="80dp" />
+        android:layout_marginBottom="140dp" />
 
 </FrameLayout>

@@ -3,6 +3,7 @@ package com.example.libraryui
 import android.annotation.SuppressLint
 import android.graphics.Color
 import android.os.Bundle
+import android.preference.PreferenceManager
 import androidx.fragment.app.Fragment
 import android.view.View
 import android.widget.Button
@@ -10,6 +11,7 @@ import android.widget.EditText
 import android.widget.ImageView
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
+import androidx.room.Room
 import com.example.libraryui.databinding.FragmentFullInfoBinding
 import kotlin.getValue
 import kotlin.properties.Delegates
@@ -25,7 +27,7 @@ class FullInfoFragment : Fragment(R.layout.fragment_full_info) {
     private lateinit var textMessFromList: String
     private var itemId by Delegates.notNull<Int>()
     private lateinit var imageView: ImageView
-    private val mainViewModel: MainViewModel by activityViewModels()
+    private lateinit var mainViewModel: MainViewModel
 
     fun updateItem(newItem: LibraryItem) {
         arguments = Bundle().apply {
@@ -42,6 +44,10 @@ class FullInfoFragment : Fragment(R.layout.fragment_full_info) {
         et_SecondVar = binding.etSecondVar
         saveButton = binding.saveButton
         imageView = binding.ivFullInfo
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val database = Room.databaseBuilder(requireContext(), LibDatabase::class.java, "library.db").build()
+        val repository = LibraryRepository(database.bookDao(), database.diskDao(), database.newspaperDao(), prefs)
+        mainViewModel = MainViewModel(repository)
 
         mainViewModel.messageToFullInfo.observe(viewLifecycleOwner) {
             textMessFromList = it
@@ -85,20 +91,21 @@ class FullInfoFragment : Fragment(R.layout.fragment_full_info) {
                     itemID,
                     et_Title.text.toString(),
                     et_FirstVar.text.toString(),
-                    et_SecondVar.text.toString().toInt()
+                    et_SecondVar.text.toString().toInt(),
+                    System.currentTimeMillis()
                 )
             } else if (type == R.id.rb_disk) {
                 item = Disk(
-                    itemID, et_Title.text.toString(), et_FirstVar.text.toString()
+                    itemID, et_Title.text.toString(), et_FirstVar.text.toString(), System.currentTimeMillis()
                 )
             } else if (type == R.id.rb_newspaper) {
                 item = Newspaper(
-                    itemID, et_Title.text.toString(), et_FirstVar.text.toString().toInt()
+                    itemID, et_Title.text.toString(), et_FirstVar.text.toString().toInt(), System.currentTimeMillis()
                 )
             }
             return Pair(item, true)
         }
-        return Pair(Newspaper(0, "", 0), false)
+        return Pair(Newspaper(0, "", 0, 0), false)
     }
 
     fun updateUi(message: String) {

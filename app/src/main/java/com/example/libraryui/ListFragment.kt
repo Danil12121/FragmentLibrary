@@ -1,16 +1,25 @@
 package com.example.libraryui
 
 
+import android.content.SharedPreferences
 import android.content.res.Configuration
 import android.os.Bundle
+import android.preference.PreferenceManager
 import androidx.fragment.app.Fragment
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.annotation.MainThread
 import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import androidx.room.Room
+import com.example.libraryui.BookDao
 import com.example.libraryui.databinding.FragmentListBinding
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.delay
@@ -19,151 +28,133 @@ import kotlin.getValue
 import kotlin.random.Random
 
 class ListFragment : Fragment(R.layout.fragment_list) {
-    val INIT_FLAG_STR = "initFlag"
     private lateinit var binding: FragmentListBinding
     private lateinit var adapter: LibAdapter
-    private val mainViewModel: MainViewModel by activityViewModels()
-    private var countOfItem = 0
-    private val currentItems = mutableListOf<LibraryItem>()
-    private var initFlag = true
+    private lateinit var viewModel: MainViewModel
     private var itemClickListener: ((LibraryItem) -> Unit)? = null
-
-    fun setOnItemClickListener(listener: (LibraryItem) -> Unit) {
-        itemClickListener = listener
-    }
-
-    override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?
-    ): View? {
-        binding = FragmentListBinding.inflate(inflater)
-        return binding.root
-    }
-
-    fun firstInit(mainViewModel: MainViewModel) {
-        if (initFlag) {
-            currentItems.addAll(mainViewModel.initList)
-            adapter.submitList(currentItems.toList())
-            initFlag = false
-        }
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putBoolean(INIT_FLAG_STR, initFlag)
-    }
-
+    private var countOfItem = 1
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        savedInstanceState?.let {
-            initFlag = it.getBoolean(INIT_FLAG_STR, true)
-        }
-        adapter = LibAdapter()
+        super.onViewCreated(view, savedInstanceState)
+        binding = FragmentListBinding.bind(view)
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val database = Room.databaseBuilder(requireContext(), LibDatabase::class.java, "library.db").build()
+        val repository = LibraryRepository(database.bookDao(), database.diskDao(), database.newspaperDao(), prefs)
+        viewModel = MainViewModel(repository)
+        setupRecyclerView()
+        setupObservers()
+        setupListeners()
+    }
 
-        binding.rcvLibraryItems.adapter = adapter
-        binding.rcvLibraryItems.layoutManager = LinearLayoutManager(requireContext())
-        firstInit(mainViewModel)
-
-        lifecycleScope.launch {
-            mainViewModel.loadDataToListFragment(adapter)
+    private fun setupRecyclerView() {
+        adapter = LibAdapter().apply {
+            setOnItemClickListener { item ->
+                handleItemClick(item)
+            }
         }
 
-        lifecycleScope.launch {
-            mainViewModel.items.collect { adapter.submitList(it) }
-        }
-        lifecycleScope.launch {
-            mainViewModel.state.collect {
-                when (it) {
-                    is State.Loading -> showShimmer()
-                    is State.Success -> {
-                        hideShimmer()
-                        binding.rcvLibraryItems.visibility = View.VISIBLE
+        binding.rcvLibraryItems.apply {
+            layoutManager = LinearLayoutManager(requireContext())
+            adapter = this@ListFragment.adapter
+            addOnScrollListener(object : RecyclerView.OnScrollListener() {
+                override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                    val layoutManager = recyclerView.layoutManager as LinearLayoutManager
+
+                    if (!recyclerView.canScrollVertically(1)) {
+                        viewModel.loadNextPage()
                     }
 
-                    is State.Error -> showError(it.message)
+                    if (layoutManager.findFirstVisibleItemPosition() <= 10) {
+                        viewModel.loadPreviousPage()
+                    }
+                }
+            })
+        }
+    }
+
+    private fun setupObservers() {
+        viewLifecycleOwner.lifecycleScope.launch {
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.state.collect { state ->
+                    when (state) {
+                        is State.Loading -> showShimmer()
+                        is State.Success -> {
+                            hideShimmer()
+                            viewModel.addItem(state.data[countOfItem])
+                            adapter.submitList(state.data)
+                        }
+                        is State.Error -> {
+                            hideShimmer()
+                            showError(state.message)
+                        }
+                    }
                 }
             }
         }
-        setListeners()
 
-        mainViewModel.itemToList.observe(viewLifecycleOwner) { newItem ->
-            if (currentItems.none { it.id == newItem.id }) {
-                currentItems.add(newItem)
-                adapter.submitList(currentItems.toList())
-                binding.rcvLibraryItems.scrollToPosition(currentItems.size - 1)
+        viewModel.selectedItem.observe(viewLifecycleOwner) { item ->
+            item?.let {
+                navigateToDetails(it)
             }
         }
     }
 
-    fun setListeners() {
-        adapter.setOnItemClickListener { item ->
-            if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
-                itemClickListener?.invoke(item)
-            } else {
-                mainViewModel.messageToFullInfo.value = "OLD"
-                mainViewModel.setItemToFullInfo(item)
-                lifecycleScope.launch {
-                    imitationOfLoad(item)
-                }
+    private fun setupListeners() {
+        binding.apply {
+            buttonTitle.setOnClickListener {
+                viewModel.setSortOrder("title")
             }
-        }
 
-        binding.buttonAdd.setOnClickListener {
-            mainViewModel.messageToFullInfo.value = "NEW"
-            mainViewModel.idToFullInfo.value = countOfItem++
-            findNavController().navigate(R.id.action_listFragment_to_fullInfoFragment)
+            buttonDate.setOnClickListener {
+                viewModel.setSortOrder("date")
+            }
+
+            buttonAdd.setOnClickListener {
+                navigateToAddNewItem()
+            }
         }
     }
 
-    suspend fun imitationOfLoad(item: LibraryItem) {
-        var flag = true
-        try {
-            showShimmer()
-            showProgressBar()
-            delay(Random.nextLong(100, 2000))
-            if (Random.nextInt(1, 5) == 3) {
-                throw Exception()
-            }
-        } catch (e: Exception) {
-            hideShimmer()
-            binding.rcvLibraryItems.visibility = View.VISIBLE
-            mainViewModel._state.value = State.Error(
-                e.message ?: "Ошибка при получении данных об элементе с id ${item.id}"
-            )
-            flag = false
+    private fun handleItemClick(item: LibraryItem) {
+        if (resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            itemClickListener?.invoke(item)
+        } else {
+            viewModel.selectItem(item)
         }
-        if (flag) {
-            hideShimmer()
+    }
+
+    private fun navigateToDetails(item: LibraryItem) {
+        viewModel.messageToFullInfo.value = "OLD"
+        viewModel.setItemToFullInfo(item)
+        findNavController().navigate(R.id.action_listFragment_to_fullInfoFragment)
+    }
+
+    private fun navigateToAddNewItem() {
+        viewModel.messageToFullInfo.value = "NEW"
+        viewModel.idToFullInfo.value = countOfItem++
             findNavController().navigate(R.id.action_listFragment_to_fullInfoFragment)
-        }
     }
 
     private fun showShimmer() {
-        hideProgressBar()
-        binding.shimmerLayout.visibility = View.VISIBLE
-        binding.shimmerLayout.startShimmer()
-        binding.rcvLibraryItems.visibility = View.GONE
-    }
-
-    private fun showProgressBar() {
-        hideShimmer()
-        binding.myProgressBar.visibility = View.VISIBLE
-    }
-
-    private fun hideProgressBar() {
-        binding.myProgressBar.visibility = View.GONE
+        binding.apply {
+            shimmerLayout.visibility = View.VISIBLE
+            shimmerLayout.startShimmer()
+            rcvLibraryItems.visibility = View.GONE
+        }
     }
 
     private fun hideShimmer() {
-        binding.shimmerLayout.stopShimmer()
-        binding.shimmerLayout.visibility = View.GONE
-        hideProgressBar()
+        binding.apply {
+            shimmerLayout.stopShimmer()
+            shimmerLayout.visibility = View.GONE
+            rcvLibraryItems.visibility = View.VISIBLE
+        }
     }
 
     private fun showError(message: String) {
         Snackbar.make(binding.root, message, 2500).show()
     }
 
-    override fun onResume() {
-        super.onResume()
-        adapter.submitList(currentItems.toList())
+    fun setOnItemClickListener(listener: (LibraryItem) -> Unit) {
+        itemClickListener = listener
     }
 }

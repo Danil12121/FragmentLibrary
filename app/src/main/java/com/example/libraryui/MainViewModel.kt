@@ -10,7 +10,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-class MainViewModel : ViewModel() {
+
+class MainViewModel(
+    private val repository: LibraryRepository
+) : ViewModel() {
     private val _itemToList = MutableLiveData<LibraryItem>()
     val itemToList: LiveData<LibraryItem> = _itemToList
 
@@ -20,6 +23,13 @@ class MainViewModel : ViewModel() {
     val messageToFullInfo = MutableLiveData<String>()
     val idToFullInfo = MutableLiveData<Int>()
     var currentItem = MutableLiveData<LibraryItem>()
+
+    private val _selectedItem = MutableLiveData<LibraryItem?>(null)
+    val selectedItem: LiveData<LibraryItem?> = _selectedItem
+
+    fun selectItem(item: LibraryItem) {
+        _selectedItem.value = item
+    }
 
     fun setItemToList(item: LibraryItem) {
         _itemToList.value = item
@@ -42,22 +52,69 @@ class MainViewModel : ViewModel() {
 
     private val _items = MutableStateFlow<List<LibraryItem>>(emptyList())
     val items: StateFlow<List<LibraryItem>> = _items.asStateFlow()
-    val initList = listOf(
-        Book(100, "dsasd", "String", 1),
-        Newspaper(1500, "news2", 19),
-        Disk(11111, "wqew", "CD"),
-        Disk(2222, "wedaaa", "DVD"),
-        Book(10101, "MYBOOK", "AUTHOR", 234),
-        Newspaper(15002, "2news22", 14569),
-        Newspaper(15003, "3news22", 1934)
-    )
 
-    suspend fun loadDataToListFragment(adapter: LibAdapter) {
+
+    init {
+        loadInitialData()
+    }
+
+    private fun loadInitialData() {
         viewModelScope.launch {
             _state.value = State.Loading
-            delay(1000)
-            _items.value = adapter.currentList
-            _state.value = State.Success(_items.value)
+            try {
+                val items = repository.loadInitialData()
+                _state.value = State.Success(items)
+            } catch (e: Exception) {
+                _state.value = State.Error("Ошибка загрузки: ${e.message}")
+            }
+        }
+    }
+
+    fun loadNextPage() {
+        viewModelScope.launch {
+            val currentState = _state.value as? State.Success ?: return@launch
+
+            try {
+                val newItems = repository.loadNextPage()
+                if (newItems.isNotEmpty()) {
+                    _state.value = State.Success(currentState.data + newItems)
+                }
+            } catch (e: Exception) {
+                _state.value = State.Error("Ошибка загрузки следующей страницы: ${e.message}")
+            }
+        }
+    }
+    fun loadPreviousPage() {
+        viewModelScope.launch {
+            val currentState = _state.value as? State.Success ?: return@launch
+
+            try {
+                val previousItems = repository.loadPreviousPage()
+                if (previousItems.isNotEmpty()) {
+                    _state.value = State.Success(previousItems + currentState.data)
+                }
+            } catch (e: Exception) {
+                _state.value = State.Error("Ошибка загрузки предыдущей страницы: ${e.message}")
+            }
+        }
+    }
+
+    fun setSortOrder(order: String) {
+        viewModelScope.launch {
+            repository.prefs.edit().putString(LibraryRepository.SORT_KEY, order).apply()
+            loadInitialData()
+        }
+    }
+
+
+    fun addItem(item: LibraryItem) {
+        viewModelScope.launch {
+            try {
+                repository.addItem(item)
+                loadInitialData()
+            } catch (e: Exception) {
+                _state.value = State.Error("Ошибка добавления: ${e.message}")
+            }
         }
     }
 }

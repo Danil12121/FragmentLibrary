@@ -36,9 +36,9 @@ android {
         viewBinding = true
     }
 }
-
 dependencies {
 
+    implementation("androidx.room:room-runtime:2.6.1")
     implementation(libs.androidx.core.ktx)
     implementation("com.google.android.material:material:1.12.0")
     implementation(libs.androidx.activity.compose)
