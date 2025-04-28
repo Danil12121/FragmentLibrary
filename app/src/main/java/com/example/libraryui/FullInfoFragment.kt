@@ -3,6 +3,7 @@ package com.example.libraryui
 import android.annotation.SuppressLint
 import android.graphics.Color
 import android.os.Bundle
+import android.preference.PreferenceManager
 import androidx.fragment.app.Fragment
 import android.view.View
 import android.widget.Button
@@ -10,25 +11,27 @@ import android.widget.EditText
 import android.widget.ImageView
 import androidx.fragment.app.activityViewModels
 import androidx.navigation.fragment.findNavController
+import androidx.room.Room
 import com.example.libraryui.databinding.FragmentFullInfoBinding
 import kotlin.getValue
 import kotlin.properties.Delegates
 
 class FullInfoFragment : Fragment(R.layout.fragment_full_info) {
-    lateinit var binding: FragmentFullInfoBinding
-    lateinit var et_Title: EditText
-    lateinit var et_FirstVar: EditText
-    lateinit var et_SecondVar: EditText
-    lateinit var saveButton: Button
+    val ITEM_STR = "item"
+    private lateinit var binding: FragmentFullInfoBinding
+    private lateinit var et_Title: EditText
+    private lateinit var et_FirstVar: EditText
+    private lateinit var et_SecondVar: EditText
+    private lateinit var saveButton: Button
 
-    lateinit var textMessFromList: String
-    var itemId by Delegates.notNull<Int>()
-    lateinit var imageView: ImageView
-    private val mainViewModel: MainViewModel by activityViewModels()
+    private lateinit var textMessFromList: String
+    private var itemId by Delegates.notNull<Int>()
+    private lateinit var imageView: ImageView
+    private lateinit var mainViewModel: MainViewModel
 
     fun updateItem(newItem: LibraryItem) {
         arguments = Bundle().apply {
-            putSerializable("item", newItem)
+            putSerializable(ITEM_STR, newItem)
         }
         updateUi("NEW")
     }
@@ -41,6 +44,10 @@ class FullInfoFragment : Fragment(R.layout.fragment_full_info) {
         et_SecondVar = binding.etSecondVar
         saveButton = binding.saveButton
         imageView = binding.ivFullInfo
+        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
+        val database = Room.databaseBuilder(requireContext(), LibDatabase::class.java, "library.db").build()
+        val repository = LibraryRepository(database.bookDao(), database.diskDao(), database.newspaperDao(), prefs)
+        mainViewModel = MainViewModel(repository)
 
         mainViewModel.messageToFullInfo.observe(viewLifecycleOwner) {
             textMessFromList = it
@@ -84,46 +91,49 @@ class FullInfoFragment : Fragment(R.layout.fragment_full_info) {
                     itemID,
                     et_Title.text.toString(),
                     et_FirstVar.text.toString(),
-                    et_SecondVar.text.toString().toInt()
+                    et_SecondVar.text.toString().toInt(),
+                    System.currentTimeMillis()
                 )
             } else if (type == R.id.rb_disk) {
                 item = Disk(
-                    itemID, et_Title.text.toString(), et_FirstVar.text.toString()
+                    itemID, et_Title.text.toString(), et_FirstVar.text.toString(), System.currentTimeMillis()
                 )
             } else if (type == R.id.rb_newspaper) {
                 item = Newspaper(
-                    itemID, et_Title.text.toString(), et_FirstVar.text.toString().toInt()
+                    itemID, et_Title.text.toString(), et_FirstVar.text.toString().toInt(), System.currentTimeMillis()
                 )
             }
             return Pair(item, true)
         }
-        return Pair(Newspaper(0, "", 0), false)
+        return Pair(Newspaper(0, "", 0, 0), false)
     }
 
     fun updateUi(message: String) {
         when (message) {
-            "NEW" -> {
-                saveButton.text = "Сохранить"
-                val radioGroup = binding.radioGroup
-                val defaultCheckedId = radioGroup.checkedRadioButtonId
-                settingsBeforeEnterData(defaultCheckedId)
-                radioGroup.setOnCheckedChangeListener { group, checkedId ->
-                    settingsBeforeEnterData(checkedId)
-                }
-            }
-
-            "OLD" -> {
-                saveButton.text = "Назад"
-                binding.radioGroup.visibility = View.INVISIBLE
-                val item = mainViewModel.itemToFullInfo.value
-                displayInformation(item)
-                makeNotEnable(et_Title)
-                makeNotEnable(et_FirstVar)
-                makeNotEnable(et_FirstVar)
-            }
-
+            "NEW" -> actionOnNew()
+            "OLD" -> actionOnOld()
             else -> saveButton.text = "Ошибка передачи сообщения"
         }
+    }
+
+    fun actionOnNew() {
+        saveButton.text = "Сохранить"
+        val radioGroup = binding.radioGroup
+        val defaultCheckedId = radioGroup.checkedRadioButtonId
+        settingsBeforeEnterData(defaultCheckedId)
+        radioGroup.setOnCheckedChangeListener { group, checkedId ->
+            settingsBeforeEnterData(checkedId)
+        }
+    }
+
+    fun actionOnOld() {
+        saveButton.text = "Назад"
+        binding.radioGroup.visibility = View.INVISIBLE
+        val item = mainViewModel.itemToFullInfo.value
+        displayInformation(item)
+        makeNotEnable(et_Title)
+        makeNotEnable(et_FirstVar)
+        makeNotEnable(et_FirstVar)
     }
 
     fun makeNotEnable(et: EditText) {
@@ -182,7 +192,7 @@ class FullInfoFragment : Fragment(R.layout.fragment_full_info) {
     companion object {
         fun newInstance(item: LibraryItem) = FullInfoFragment().apply {
             arguments = Bundle().apply {
-                putSerializable("item", item)
+                putSerializable(ITEM_STR, item)
             }
         }
     }

@@ -1,12 +1,14 @@
 package com.example.libraryui
 
+
 class Book(
-    id: Int,
-    val title: String,
+    override val id: Int,
+    title: String,
     val author: String,
     val pageCount: Int,
+    createdAt: Long,
 
-    ) : LibraryItem(imageID = R.drawable.book, id = id, isEnable = true, name = "Book") {
+    ) : LibraryItem(imageID = R.drawable.book, id = id, isEnable = true, name = "Book", createdAt = System.currentTimeMillis(), title=title) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         other as Book

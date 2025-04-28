@@ -1,9 +1,13 @@
 package com.example.libraryui
 
-class Newspaper(
-    id: Int, val title: String, val releaseNumber: Int
 
-) : LibraryItem(imageID = R.drawable.newspaper, id = id, isEnable = true, name = "Newspaper") {
+class Newspaper(
+    override val id: Int,
+    title: String,
+    val releaseNumber: Int,
+    createdAt: Long
+
+) : LibraryItem(imageID = R.drawable.newspaper, id = id, isEnable = true, name = "Newspaper", createdAt = System.currentTimeMillis(), title=title) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         other as Newspaper
