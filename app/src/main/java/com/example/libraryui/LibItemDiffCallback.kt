@@ -8,6 +8,7 @@ class LibItemDiffCallback : DiffUtil.ItemCallback<LibraryItem>() {
     override fun areItemsTheSame(
         oldItem: LibraryItem, newItem: LibraryItem
     ): Boolean {
+        if (oldItem.javaClass != newItem.javaClass) return false
         return oldItem.id == newItem.id
     }
 
@@ -15,6 +16,7 @@ class LibItemDiffCallback : DiffUtil.ItemCallback<LibraryItem>() {
     override fun areContentsTheSame(
         oldItem: LibraryItem, newItem: LibraryItem
     ): Boolean {
+        if (oldItem.javaClass != newItem.javaClass) return false
         return oldItem == newItem
     }
 

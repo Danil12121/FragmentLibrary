@@ -21,7 +21,11 @@
         android:id="@+id/fullInfoFragment"
         android:name="com.example.libraryui.FullInfoFragment"
         android:label="fragment_full_info"
-        tools:layout="@layout/fragment_full_info">
+        tools:layout="@layout/fragment_full_info"
+        >
+        <argument
+            android:name="view_model"
+            app:argType="com.example.libraryui.MainViewModel" />
     </fragment>
 
 </navigation>

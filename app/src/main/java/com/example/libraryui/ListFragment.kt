@@ -32,15 +32,24 @@ class ListFragment : Fragment(R.layout.fragment_list) {
     private lateinit var adapter: LibAdapter
     private lateinit var viewModel: MainViewModel
     private var itemClickListener: ((LibraryItem) -> Unit)? = null
-    private var countOfItem = 1
+    private var countOfItem = 0
+    lateinit var bundleVM: Bundle
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding = FragmentListBinding.bind(view)
+        val recyclerView = binding.rcvLibraryItems
+        recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        adapter = LibAdapter()
+        setupRecyclerView()
+        recyclerView.adapter = adapter
         val prefs = PreferenceManager.getDefaultSharedPreferences(context)
         val database = Room.databaseBuilder(requireContext(), LibDatabase::class.java, "library.db").build()
         val repository = LibraryRepository(database.bookDao(), database.diskDao(), database.newspaperDao(), prefs)
         viewModel = MainViewModel(repository)
-        setupRecyclerView()
+        bundleVM = Bundle().apply {
+            putSerializable("view_model", viewModel)
+        }
         setupObservers()
         setupListeners()
     }
@@ -79,8 +88,11 @@ class ListFragment : Fragment(R.layout.fragment_list) {
                         is State.Loading -> showShimmer()
                         is State.Success -> {
                             hideShimmer()
-                            viewModel.addItem(state.data[countOfItem])
-                            adapter.submitList(state.data)
+                            if (state.data.isEmpty())
+                                Snackbar.make(binding.root, "Список сейчас пуст", 3000).show()
+                            else
+                                adapter.submitList(state.data)
+                            hideProgressBar()
                         }
                         is State.Error -> {
                             hideShimmer()
@@ -125,29 +137,36 @@ class ListFragment : Fragment(R.layout.fragment_list) {
     private fun navigateToDetails(item: LibraryItem) {
         viewModel.messageToFullInfo.value = "OLD"
         viewModel.setItemToFullInfo(item)
-        findNavController().navigate(R.id.action_listFragment_to_fullInfoFragment)
+        findNavController().navigate(R.id.action_listFragment_to_fullInfoFragment, bundleVM)
     }
 
     private fun navigateToAddNewItem() {
         viewModel.messageToFullInfo.value = "NEW"
         viewModel.idToFullInfo.value = countOfItem++
-            findNavController().navigate(R.id.action_listFragment_to_fullInfoFragment)
+        findNavController().navigate(R.id.action_listFragment_to_fullInfoFragment, bundleVM)
     }
 
     private fun showShimmer() {
-        binding.apply {
-            shimmerLayout.visibility = View.VISIBLE
-            shimmerLayout.startShimmer()
-            rcvLibraryItems.visibility = View.GONE
-        }
+        hideProgressBar()
+        binding.shimmerLayout.visibility = View.VISIBLE
+        binding.shimmerLayout.startShimmer()
+        binding.rcvLibraryItems.visibility = View.GONE
+    }
+
+    private fun showProgressBar() {
+        hideShimmer()
+        binding.myProgressBar.visibility = View.VISIBLE
+    }
+
+    private fun hideProgressBar() {
+        binding.myProgressBar.visibility = View.GONE
+        binding.rcvLibraryItems.visibility = View.VISIBLE
     }
 
     private fun hideShimmer() {
-        binding.apply {
-            shimmerLayout.stopShimmer()
-            shimmerLayout.visibility = View.GONE
-            rcvLibraryItems.visibility = View.VISIBLE
-        }
+        binding.shimmerLayout.stopShimmer()
+        binding.shimmerLayout.visibility = View.GONE
+        hideProgressBar()
     }
 
     private fun showError(message: String) {

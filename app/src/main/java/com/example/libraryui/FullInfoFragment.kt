@@ -44,10 +44,7 @@ class FullInfoFragment : Fragment(R.layout.fragment_full_info) {
         et_SecondVar = binding.etSecondVar
         saveButton = binding.saveButton
         imageView = binding.ivFullInfo
-        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-        val database = Room.databaseBuilder(requireContext(), LibDatabase::class.java, "library.db").build()
-        val repository = LibraryRepository(database.bookDao(), database.diskDao(), database.newspaperDao(), prefs)
-        mainViewModel = MainViewModel(repository)
+        mainViewModel = arguments?.getSerializable("view_model") as MainViewModel
 
         mainViewModel.messageToFullInfo.observe(viewLifecycleOwner) {
             textMessFromList = it
@@ -66,7 +63,8 @@ class FullInfoFragment : Fragment(R.layout.fragment_full_info) {
                         binding.radioGroup.checkedRadioButtonId, itemId
                     )
                     if (flag) {
-                        mainViewModel.setItemToList(result)
+                        //mainViewModel.setItemToList(result)
+                        mainViewModel.addItem(result)
                         findNavController().navigateUp()
                     }
                 }

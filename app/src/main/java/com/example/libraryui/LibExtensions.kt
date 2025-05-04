@@ -1,7 +1,6 @@
 package com.example.libraryui
 
 fun Disk.toEntity(): DiskEntity = DiskEntity(
-    id = id.toInt(),
     title = title,
     diskType = diskType,
     createdAt = createdAt,
@@ -11,7 +10,6 @@ fun Disk.toEntity(): DiskEntity = DiskEntity(
 )
 
 fun Newspaper.toEntity(): NewspaperEntity = NewspaperEntity(
-    id = id.toInt(),
     title = title,
     releaseNumber = releaseNumber,
     createdAt = createdAt,
@@ -21,7 +19,6 @@ fun Newspaper.toEntity(): NewspaperEntity = NewspaperEntity(
 )
 
 fun Book.toEntity(): BookEntity = BookEntity(
-    id = id.toInt(),
     title = title,
     author = author,
     pageCount = pageCount,

@@ -9,13 +9,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-
+import java.io.Serializable
 
 class MainViewModel(
     private val repository: LibraryRepository
-) : ViewModel() {
-    private val _itemToList = MutableLiveData<LibraryItem>()
-    val itemToList: LiveData<LibraryItem> = _itemToList
+) : ViewModel(), Serializable {
 
     private val _itemToFullInfo = MutableLiveData<LibraryItem?>(null)
     val itemToFullInfo: LiveData<LibraryItem?> = _itemToFullInfo
@@ -27,13 +25,13 @@ class MainViewModel(
     private val _selectedItem = MutableLiveData<LibraryItem?>(null)
     val selectedItem: LiveData<LibraryItem?> = _selectedItem
 
+    private val _state = MutableStateFlow<State>(State.Loading)
+    val state: StateFlow<State> = _state.asStateFlow()
+
     fun selectItem(item: LibraryItem) {
         _selectedItem.value = item
     }
 
-    fun setItemToList(item: LibraryItem) {
-        _itemToList.value = item
-    }
 
     fun setItemToFullInfo(item: LibraryItem) {
         _itemToFullInfo.value = item
@@ -46,12 +44,6 @@ class MainViewModel(
     fun setCurrentItem(item: LibraryItem) {
         currentItem.value = item
     }
-
-    val _state = MutableStateFlow<State>(State.Loading)
-    val state: StateFlow<State> = _state.asStateFlow()
-
-    private val _items = MutableStateFlow<List<LibraryItem>>(emptyList())
-    val items: StateFlow<List<LibraryItem>> = _items.asStateFlow()
 
 
     init {
