@@ -1,15 +1,16 @@
 package com.example.libraryui
 
+import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.Serializable
+import androidx.core.content.edit
 
 class MainViewModel(
     private val repository: LibraryRepository
@@ -27,6 +28,9 @@ class MainViewModel(
 
     private val _state = MutableStateFlow<State>(State.Loading)
     val state: StateFlow<State> = _state.asStateFlow()
+
+    private val _stateGoogle = MutableStateFlow<State>(State.Loading)
+    val stateGoogle: StateFlow<State> = _stateGoogle.asStateFlow()
 
     fun selectItem(item: LibraryItem) {
         _selectedItem.value = item
@@ -48,6 +52,25 @@ class MainViewModel(
 
     init {
         loadInitialData()
+    }
+
+    private val _books = MutableLiveData<List<Book>>()
+    val books: LiveData<List<Book>> = _books
+
+    fun searchBooks(author: String, title: String) {
+        _stateGoogle.value = State.Loading
+
+        viewModelScope.launch {
+            try {
+                val result = repository.searchBooks(author, title)
+                _books.value = result
+                _stateGoogle.value = State.Success(_books.value as List<Book>)
+            } catch (e: Exception) {
+                _state.value = State.Error("Ошибка при поиске книги: ${e.message}")
+                Log.d("AAA", e.toString())
+                _books.value = emptyList()
+            }
+        }
     }
 
     private fun loadInitialData() {
@@ -76,6 +99,7 @@ class MainViewModel(
             }
         }
     }
+
     fun loadPreviousPage() {
         viewModelScope.launch {
             val currentState = _state.value as? State.Success ?: return@launch
@@ -93,7 +117,7 @@ class MainViewModel(
 
     fun setSortOrder(order: String) {
         viewModelScope.launch {
-            repository.prefs.edit().putString(LibraryRepository.SORT_KEY, order).apply()
+            repository.prefs.edit { putString(LibraryRepository.SORT_KEY, order) }
             loadInitialData()
         }
     }

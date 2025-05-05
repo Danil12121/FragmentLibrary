@@ -5,6 +5,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withContext
 import android.content.SharedPreferences
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
 import kotlin.collections.isNotEmpty
 import kotlin.math.max
 
@@ -132,5 +134,27 @@ class LibraryRepository(
         return (books + disks + newspapers)
             .sortedBy { it.createdAt }
             .take(limit)
+    }
+
+    private val apiService = Retrofit.Builder()
+        .baseUrl("https://www.googleapis.com/books/v1/")
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+        .create(GetGoogleBooks::class.java)
+
+
+    suspend fun searchBooks(author: String, title: String): List<Book> {
+        val query = buildString {
+            if (author.isNotEmpty()) append("inauthor:$author ")
+            if (title.isNotEmpty()) append("intitle:$title")
+        }.trim()
+
+        val response = apiService.searchBooks(
+            query = query,
+            maxResults = 20,
+            fields = "items(id,volumeInfo(title,authors,pageCount))"
+        )
+
+        return response.items?.mapNotNull { it.toBook() } ?: emptyList()
     }
 }
