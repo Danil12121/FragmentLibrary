@@ -7,7 +7,7 @@
 
     <fragment
         android:id="@+id/listFragment"
-        android:name="com.example.libraryui.ListFragment"
+        android:name="com.example.libraryui.presentation.fragment.ListFragment"
         android:label="fragment_list"
         tools:layout="@layout/fragment_list">
 
@@ -19,13 +19,13 @@
 
     <fragment
         android:id="@+id/fullInfoFragment"
-        android:name="com.example.libraryui.FullInfoFragment"
+        android:name="com.example.libraryui.presentation.fragment.FullInfoFragment"
         android:label="fragment_full_info"
         tools:layout="@layout/fragment_full_info"
         >
         <argument
             android:name="view_model"
-            app:argType="com.example.libraryui.MainViewModel" />
+            app:argType="com.example.libraryui.presentation.viewModel.MainViewModel" />
     </fragment>
 
 </navigation>
