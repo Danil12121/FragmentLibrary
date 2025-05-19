@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.View
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.fragment.app.activityViewModels
 import androidx.fragment.app.commit
 import androidx.navigation.fragment.NavHostFragment
 import com.example.libraryui.R
@@ -13,7 +14,9 @@ import com.example.libraryui.domain.models.LibraryItem
 import com.example.libraryui.presentation.fragment.FullInfoFragment
 import com.example.libraryui.presentation.fragment.ListFragment
 import com.example.libraryui.presentation.viewModel.MainViewModel
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val viewModel: MainViewModel by viewModels()

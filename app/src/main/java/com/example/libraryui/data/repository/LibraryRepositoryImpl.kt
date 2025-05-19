@@ -21,9 +21,9 @@ import retrofit2.converter.gson.GsonConverterFactory
 import kotlin.math.max
 
 class LibraryRepositoryImpl(
-    private val bookDao: BookDao,
-    private val diskDao: DiskDao,
-    private val newspaperDao: NewspaperDao,
+    val bookDao: BookDao,
+    val diskDao: DiskDao,
+    val newspaperDao: NewspaperDao,
     val prefs: SharedPreferences
 ) : LibraryRepository {
 

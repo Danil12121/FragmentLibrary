@@ -8,6 +8,8 @@ import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageView
+import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
 import androidx.navigation.fragment.findNavController
 import com.example.libraryui.domain.models.LibraryItem
 import com.example.libraryui.R
@@ -16,8 +18,9 @@ import com.example.libraryui.domain.models.Book
 import com.example.libraryui.domain.models.Disk
 import com.example.libraryui.domain.models.Newspaper
 import com.example.libraryui.presentation.viewModel.MainViewModel
+import dagger.hilt.android.AndroidEntryPoint
 import kotlin.properties.Delegates
-
+@AndroidEntryPoint
 class FullInfoFragment : Fragment(R.layout.fragment_full_info) {
     val ITEM_STR = "item"
     private lateinit var binding: FragmentFullInfoBinding
@@ -29,8 +32,7 @@ class FullInfoFragment : Fragment(R.layout.fragment_full_info) {
     private lateinit var textMessFromList: String
     private var itemId by Delegates.notNull<Int>()
     private lateinit var imageView: ImageView
-    private lateinit var mainViewModel: MainViewModel
-
+    val mainViewModel: MainViewModel by activityViewModels()
     fun updateItem(newItem: LibraryItem) {
         arguments = Bundle().apply {
             putSerializable(ITEM_STR, newItem)
@@ -46,7 +48,6 @@ class FullInfoFragment : Fragment(R.layout.fragment_full_info) {
         et_SecondVar = binding.etSecondVar
         saveButton = binding.saveButton
         imageView = binding.ivFullInfo
-        mainViewModel = arguments?.getSerializable("view_model") as MainViewModel
 
         mainViewModel.messageToFullInfo.observe(viewLifecycleOwner) {
             textMessFromList = it
@@ -65,7 +66,6 @@ class FullInfoFragment : Fragment(R.layout.fragment_full_info) {
                         binding.radioGroup.checkedRadioButtonId, itemId
                     )
                     if (flag) {
-                        //mainViewModel.setItemToList(result)
                         mainViewModel.addItem(result)
                         findNavController().navigateUp()
                     }

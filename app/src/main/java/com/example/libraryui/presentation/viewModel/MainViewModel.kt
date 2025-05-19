@@ -1,26 +1,24 @@
 package com.example.libraryui.presentation.viewModel
 
-import android.util.Log
-import androidx.core.content.edit
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.libraryui.data.repository.LibraryRepositoryImpl
-import com.example.libraryui.domain.repository.LibraryRepository
-import com.example.libraryui.domain.models.Book
 import com.example.libraryui.domain.models.LibraryItem
 import com.example.libraryui.common.utils.State
 import com.example.libraryui.domain.usecase.Interactor
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.io.Serializable
+import javax.inject.Inject
 
-class MainViewModel(
-    private val interactor: Interactor
-) : ViewModel(), Serializable {
+@HiltViewModel
+class MainViewModel @Inject constructor(
+    val interactor: Interactor
+) : ViewModel() {
 
     private val _itemToFullInfo = MutableLiveData<LibraryItem?>(null)
     val itemToFullInfo: LiveData<LibraryItem?> = _itemToFullInfo

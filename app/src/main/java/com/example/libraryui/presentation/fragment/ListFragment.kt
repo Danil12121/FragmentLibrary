@@ -6,6 +6,8 @@ import android.os.Bundle
 import android.preference.PreferenceManager
 import androidx.fragment.app.Fragment
 import android.view.View
+import androidx.fragment.app.activityViewModels
+import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
@@ -26,15 +28,17 @@ import com.example.libraryui.presentation.viewModel.MainViewModel
 import com.google.android.material.snackbar.Snackbar
 import kotlinx.coroutines.launch
 import com.example.libraryui.domain.usecase.Interactor
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 
+@AndroidEntryPoint
 class ListFragment : Fragment(R.layout.fragment_list) {
     private lateinit var binding: FragmentListBinding
     private lateinit var adapter: LibAdapter
     private lateinit var adapterGoogle: GoogleBookAdapter
-    private lateinit var viewModel: MainViewModel
+    val viewModel: MainViewModel by activityViewModels()
     private var itemClickListener: ((LibraryItem) -> Unit)? = null
     private var countOfItem = 0
-    lateinit var bundleVM: Bundle
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -48,18 +52,6 @@ class ListFragment : Fragment(R.layout.fragment_list) {
         recyclerViewGoogle.layoutManager = LinearLayoutManager(requireContext())
         adapterGoogle = GoogleBookAdapter()
 
-
-        val prefs = PreferenceManager.getDefaultSharedPreferences(context)
-        val database =
-            Room.databaseBuilder(requireContext(), LibDatabase::class.java, "library.db").build()
-        val repository = LibraryRepositoryImpl(
-            database.bookDao(), database.diskDao(), database.newspaperDao(), prefs
-        )
-        val interactor = Interactor(repository)
-        viewModel = MainViewModel(interactor)
-        bundleVM = Bundle().apply {
-            putSerializable("view_model", viewModel)
-        }
         setupRecyclerView()
         recyclerView.adapter = adapter
         recyclerViewGoogle.adapter = adapterGoogle
@@ -230,13 +222,13 @@ class ListFragment : Fragment(R.layout.fragment_list) {
     private fun navigateToDetails(item: LibraryItem) {
         viewModel.messageToFullInfo.value = "OLD"
         viewModel.setItemToFullInfo(item)
-        findNavController().navigate(R.id.action_listFragment_to_fullInfoFragment, bundleVM)
+        findNavController().navigate(R.id.action_listFragment_to_fullInfoFragment)
     }
 
     private fun navigateToAddNewItem() {
         viewModel.messageToFullInfo.value = "NEW"
         viewModel.idToFullInfo.value = countOfItem++
-        findNavController().navigate(R.id.action_listFragment_to_fullInfoFragment, bundleVM)
+        findNavController().navigate(R.id.action_listFragment_to_fullInfoFragment)
     }
 
     private fun showShimmer(flagShim: Int, flagRcv: Int) {
